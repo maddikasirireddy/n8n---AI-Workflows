@@ -1,0 +1,369 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "42ec075f-0411-402f-853d-c88ac1141c12",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d030dd85-eff8-42d4-8c30-9cf3a81d8930",
+              "name": "goal",
+              "value": "I have 5 chapters and 1 day left.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2d423316-bcf1-4910-a314-61d8d23cf109",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Student Request:\n{{ $json.goal }}\n\nInstructions:\n\n1. Extract:\n   - chapters (number)\n   - time_available (convert days to hours if needed)\n   - student_name\n\n2. Assume:\n   - Each chapter requires 5 focused hours (average of 4–6).\n\n3. Compute:\n   required_hours = chapters × 5\n\n4. Decision Rule:\n   - If time_available >= required_hours → realistic\n   - Else → unrealistic\n\n5. If realistic, return ONLY:\n\n{\n  \"action\": \"generate_plan\",\n  \"reasoning\": \"time_available is sufficient compared to required_hours\",\n  \"days_available\": number,\n  \"chapters\": number,\n  \"confidence\": 0.9,\n  “student_name”: student_name\n}\n\n6. If unrealistic, return ONLY:\n\n{\n  \"action\": \"modify_goal\",\n  \"reasoning\": \"time_available is less than required_hours\",\n  \"suggested_adjustment\": \"reduce chapters or increase time\",\n  \"confidence\": 0.9,\n  “student_name”: student_name\n}\n\nRules:\n- Use the exact numeric comparison.\n- Return valid JSON only.\n- No markdown.\n- No extra text.\n- No explanation outside JSON.\n\nTemperature: 0.1",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        416,
+        0
+      ],
+      "id": "65c72064-8a1d-44eb-a810-0985a4f02670",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        352,
+        208
+      ],
+      "id": "983c2399-923e-4894-8be8-5c54457c2d46",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "LzRqDX48N8sjavuE",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3e31f1bc-44b3-4259-a69f-09453b8c8d34",
+              "leftValue": "true",
+              "rightValue": "flase",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        0
+      ],
+      "id": "4582404d-da55-4e83-8800-70dae11d0256",
+      "name": "realistic"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a structured study plan.\n\nDays Available:\n{{ $('Edit Fields').item.json.goal }}\n\nChapters:\n{{ $('Edit Fields').item.json.goal }}\n\nRequirements:\n\nDivide chapters evenly across days.\n\nInclude:\n\nStudy blocks\n\nShort revision\n\nPractice questions\n\n10–15 minute breaks\n\nAvoid unrealistic schedules.\n\nKeep daily total under 8 focused hours.\n\nUse clear formatting.\n\nStructure example:\n\nDay 1:\n\n9:00–11:00 → Chapter 1\n\n11:15–12:00 → Practice\n\n2:00–4:00 → Chapter 2\n\n4:15–5:00 → Revision\n\nKeep it practical and motivating.\n\nTemperature: 0.6\n\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1184,
+        -160
+      ],
+      "id": "71abf8de-3f78-441e-b85f-08b578c84fb1",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        -16
+      ],
+      "id": "7192f64d-d8c3-463b-8b8f-49fe507e2cd7",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "LzRqDX48N8sjavuE",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=The student’s goal is unrealistic.\n\nOriginal Request:\n{{ $('Basic LLM Chain').item.json.text }}\n\nReason for rejection:\n{{ $('Code in JavaScript').item.json.neumann.reasoning }}\n\nYour task:\n\nExplain briefly why the goal may not be feasible.\n\nSuggest a realistic alternative plan.\n\nKeep tone supportive.\n\nProvide a concrete suggestion (e.g., reduce chapters, increase days, prioritize topics).\n\nDo not criticize.\nBe constructive and encouraging.\n\nTemperature: 0.6\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1184,
+        144
+      ],
+      "id": "1a6b9922-922f-4aea-8792-8b4a222f4b76",
+      "name": "Basic LLM Chain2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\"neumann\":JSON.parse($input.first().json.text)}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        16
+      ],
+      "id": "36b8196d-ae1e-45d3-b7e6-10005515ea79",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        352
+      ],
+      "id": "83a6cc46-01f7-4d3e-a0a2-5e9cd00fd428",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "LzRqDX48N8sjavuE",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1rBSHUJo74MBjbN-iUUcEFHF-SB5BjAtTJlMfudTeHAg",
+          "mode": "list",
+          "cachedResultName": "Untitled spreadsheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rBSHUJo74MBjbN-iUUcEFHF-SB5BjAtTJlMfudTeHAg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rBSHUJo74MBjbN-iUUcEFHF-SB5BjAtTJlMfudTeHAg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "text"
+          ],
+          "schema": [
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1728,
+        -16
+      ],
+      "id": "87d0b3fe-6fd9-4363-84fd-00de3de9e29e",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pHjEKKADtg7ie7zI",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "realistic": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain2": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "realistic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f88d62cfd452937520223ad43f805dc12fdfa30c8d44293c2835f4a567b4192c"
+  }
+}
